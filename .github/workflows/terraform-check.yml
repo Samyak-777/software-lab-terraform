@@ -1,0 +1,50 @@
+name: Terraform Check
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  terraform:
+    name: 'Terraform Validation'
+    runs-on: ubuntu-latest
+    
+    # Use a matrix to run the checks in all day folders
+    strategy:
+      matrix:
+        directory:[day1, day2, day3, day4, day5]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./${{ matrix.directory }}
+
+    - name: Terraform Format
+      run: terraform fmt -check
+      working-directory: ./${{ matrix.directory }}
+      continue-on-error: true 
+
+    - name: Terraform Validate
+      run: terraform validate
+      working-directory: ./${{ matrix.directory }}
+
+    # Note: For Day 2, we must specify the var-file so plan doesn't fail
+    - name: Terraform Plan
+      run: |
+        if[ "${{ matrix.directory }}" == "day2" ]; then
+          terraform plan -var-file="dev.tfvars"
+        else
+          terraform plan
+        fi
+      working-directory: ./${{ matrix.directory }}
